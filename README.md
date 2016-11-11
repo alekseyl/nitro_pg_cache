@@ -142,12 +142,12 @@ I used htop system-monitor to be sure that nothing going in the background and t
 CONFIGURATION: dalli + memcached same machine vs postgres 9.4 same machine 
 VM config:  8 logical cores, Core i7 SSD 10Gb RAM
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    ATTENTION NOTICE:   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+                                         ATTENTION NOTICE:   
 This numbers just a VERY particular case, you can use them to predict your own *comparative* numbers very carefully,
 and of course you can't predict your own time in seconds! 
 But I did it on two completly different tables and their collections and get very closed
 result in percents meaning that numbers are quite representative
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 first column - records count
 rv - "reverse" cache when we first just render only __missing__ elements and save them to DB, and second aggregate all collection from db
@@ -189,15 +189,15 @@ In rails >= 5 or with pg_cache_key gem it will bring nearly same result i.e. rat
 ##                                    СРАВНЕНИЕ С MEMCACHE + DALLI
 
 Сравнения провел вручную на живых страницах с исопльзованием rack mini-profiler gem. 
-Использую htop следил, чтобы ничего не загружало систему дополнительно и портило результаты
+Используя htop, следил, чтобы ничего не загружало систему дополнительно и портило результаты.
 
-Настройки виртуалки: dalli + memcached vs postgres 9.4 ( ~ 8 логических ядер + 10Gb, реальная машина Core i7 SSD 10Gb RAM)
+Настройки виртуалки: dalli + memcached vs postgres 9.4 ( ~ 8 логических ядер + 10Gb, реальная машина Core i7 SSD 16Gb RAM)
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    ВНИМАНИЕ:   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                                        ВНИМАНИЕ:   
+
 Полученные результаты это конкретный случай, их нельзя использовать для того чтобы предстказать ваш результат в секундах, 
 НО с определенной осторожностью можно предсказать относительные значения. Я прогонял тест на двух совершенно разных 
 таблицах/коллекциях и сравнительные значения были примерно одинаковые.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Расшифровка таблицы: 
 first column - Количество записей из таблицы
@@ -294,25 +294,30 @@ The rules of cache changes are depended on prerender state of partial true|false
 Главное правило: никакого пререндеринга на старте сервера иначе у деплоя развяжется пупок.
 На старте только: массовое удаление устаревшего, создание новых записей nitro_partial для новых паршиалов.
 Правила поведения кеша при изменениях ( поведение зависит от значения prerender - true|false)
-+ 1 При изменении объекта:
-  а) prerender-true => after_commit -> render all variants
-  б) prerender-false => after_commit -> clear, view on demand -> render and mass save
-2 при изменении параметров кеша:
-  +2.1 Добавились новые ключи.
+*При изменении объекта:*
+
+  1. prerender-true => after_commit -> render all variants
+  2. prerender-false => after_commit -> clear, view on demand -> render and mass save
+
+*При изменении параметров кеша:*
+
+  1. Добавились новые ключи.
       true => рельсы стартуют без дополнительного пререндеринга, параллельно запускаем rake :nitro_prerender,
       false => do nothing! Ключей не было, значений не было, все будет генериться по первому требованию
-  +2.2 Удалились ключи true/false => nitro_partial.db_cached_partials.where.not( nitro_partial.keys ).delete_all на старте приложения можно.
-      +б) Если уже сгенеренные значения не важны то можно просто переписать код, кеши для не найденных файлов будут удалены,
+  2. Удалились ключи true/false => nitro_partial.db_cached_partials.where.not( nitro_partial.keys ).delete_all на старте приложения можно.
+    + Если уже сгенеренные значения не важны то можно просто переписать код, кеши для не найденных файлов будут удалены,
         новые можно прерндернуть соответствующим рейком
-  -2.8 При изменении параметров устаревания, проверяем в rake :expire_db_nitro_cache который можно в кронджобы вписать.
+  3. При изменении параметров устаревания, проверяем в rake :expire_db_nitro_cache который можно в кронджобы вписать.
       все кеши на соответствие новым правилам. Ненужное удаляем.
 
 ##                                           PARTIAL PRERENDER
 
 Since nitro_pg_cache works as usual cache* also we can prerender only for part of keys and part of records, only most wanted.
+
 For example I have feed different for admin and user, but since admin can wait more and also looks at the feed not
 very often. So I can set for prerender locals: { role: [User] }, instead of locals: { role: [User, Admin] }
 and get twice less prerendered caches.
+
 Another example: we have a long history of payments but actual need is only for a last year for example,
 so we can set prerender scope with condition on :created_at column, and prerender only a last year records.
 
@@ -321,9 +326,11 @@ so we can set prerender scope with condition on :created_at column, and prerende
 ##                                          ЧАСТИЧНЫЙ ПРЕРЕНДЕРИНГ
 В силу того что nitro_cache может работать практически как обычный матрешный кеш* мы можем включить пререндеринг только для части
 ключей и части записей.
+
 Например у меня разное отображение ленты для админа и для пользователя. Админ пользуется лентой нечасто и в целом может
 подождать на полсекунды дольше. ТО в параметрах пререндеринга можно написать locals: { role: [User] }, вместо locals: { role: [User, Admin] }
 и пререндрить вполовину меньше вариантов для записи.
+
 Второй пример: мы ведем длинную историю оплат пользователей, но для работы бухов нужен последний квартал или там год
 мы можем выставить scope для пререндеринга по :created_at и пререрндерить только нужные записи.
 
@@ -358,7 +365,53 @@ Right now all cache get timestamp for the last access ( :viewed_at ) so it possi
 
 
 ## Usage
-How to use my plugin.
+
+### As cache replacement
+Replace:
+
+```ruby
+ -cache [@requests] do
+   =render partial: "admins/requests/request", collection: @requests, cached: true
+```
+
+with:
+```ruby
+ =db_cache_collection( collection: @requests, partial: "admins/requests/request.html.slim", as: :request, locals: {} )
+```
+
+inside request.html.slim replace:
+
+```ruby
+ -cache[request] do
+```
+
+with:
+```ruby
+ -db_cache(request) do
+```
+
+and inside your model:
+
+```ruby
+class Request < ActiveRecord::Base
+ acts_as_nitro_cacheable    
+end
+```
+
+### Prerender
+
+If you want to use prerender model will look like:
+
+```ruby
+class Request < ActiveRecord::Base
+ acts_as_nitro_cacheable    
+ add_prerender_partial( partial: "admins/requests/request.html.slim",
+                      all_locals: {},
+                      as: :request,
+                      scope: Request.except_created.with_deleted.where(created_at: -6.month.from_now..Time.now ) )
+end
+```
+
 
 ## Installation
 Add this line to your application's Gemfile:
@@ -377,8 +430,13 @@ Or install it yourself as:
 $ gem install nitro_pg_cache
 ```
 
+```bash
+$ rake nitro_pg_cache:install:migrations
+$ rake db:migrate
+```
+
 ## Contributing
-Contribution directions go here.
+If you need some functionality OR you want to add it: issues and PR are welcome.
 
 ## TODO
   0) Нужно config в рельсах приделать. по аналогии с конфигом для дали например.
@@ -390,7 +448,7 @@ Contribution directions go here.
   3) устаревание expires?
   4) Общие лимиты. можно устанавливать через конфиг на всех и на отдельные паршиалы следить
      за переполнением можно в кронджобах
-  5) rspec gem (!!) Для целей тестирования достаточно переопределить ф-ию аггрегации и можно тестировать на sqlite :memory, т.е. в принципе замокать ее в спеках,
+  5) rspec (!!) Для целей тестирования достаточно переопределить ф-ию аггрегации и можно тестировать на sqlite :memory, т.е. в принципе замокать ее в спеках,
  остальное должно работать везде. + замокать cashe_keys возможно придется также ( если не сработает: https://sqlite.org/json1.html )
 
 
@@ -405,10 +463,12 @@ Contribution directions go here.
 
 Также возможно: автоматическое получение параметров с которых начинает иметь смысл параллелить
 
-2. Еще одна возможность разгона рельсового приложения с получением коллекций: nginx-sql модуль, если коллекция будет получаться
-отдельным запросом это можно вытащить в nginx модуль.
+2. Еще одна возможность разгона рельсового приложения с получением коллекций: nginx-sql модуль. Имеет смыссл если коллекция будет получаться
+отдельным запросом.
 
-3. Настраиваемый размер коллекции при которой происходит переключение между дополнительным кешированием всей коллекции или же остаемся в рамках запроса на склейку строк.
+3. Настраиваемый размер коллекции при которой происходит переключение между дополнительным кешированием всей коллекции или же остаемся в рамках запроса на склейку строк. 
+   Сейчас сделан выбор в пользу оптимизации больших коллекций т.е. делается еще дополнительные запросы в БД, что дает нам еще
+   большую скорость на уже закешированных больших коллекциях, но на маленьких будет наверняка дороже чем сразу склеить результат. 
 
 
 ## License

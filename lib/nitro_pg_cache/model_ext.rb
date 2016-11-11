@@ -3,9 +3,9 @@ module NitroPgCache
     extend ActiveSupport::Concern
 
     included do
-      # if: @db_cache_prerender than we will recache all, otherwise
-      after_save  :clear_db_cache
-      after_touch :clear_db_cache
+      #
+      after_save  :clear_nitro_cache
+      after_touch :clear_nitro_cache
 
     end
 
@@ -75,14 +75,15 @@ JOIN
       #   scope: Model.where(created_at: -6.month.from_now..Time.now)
       # )
       #todo перед eval(expires) все равно сделать проверку. а то иначе можно положить исполняемую строку в БД и потом вынудить исполнится на прогоне )
-      def add_cache_partial(options)
+
+      def add_prerender_partial(options)
         p_partial = NitroPartial.add_prerendered_partial( { scope: all }.merge(options) )
         after_commit { p_partial.update_cache_for_collection([self]) }
       end
 
     end
 
-    def clear_db_cache
+    def clear_nitro_cache
       NitroCache.where(nitro_cacheable: self).delete_all
     end
   end

@@ -108,7 +108,6 @@ class NitroPartial < ActiveRecord::Base
       raise( ArgumentError, 'expires params must be in form: N.(day[s]|week[s]|month[s]|year[s]).from_now' ) if !options[:expires].blank? || EXPIRES_REGEX === options[:expires].to_s
       raise( ArgumentError, 'must have scope for prerendering' ) unless options[:scope]
 
-
       if existing_partial
         # all non existed now key combination will be deleted
         existing_partial.nitro_caches.where.not( nitro_cache_key: key_combinations.keys ).delete_all
