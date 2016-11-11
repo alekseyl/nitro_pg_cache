@@ -99,31 +99,56 @@ Only clear collections rendering can be cached with this gem. i.e.:
       =render partial: 'pagination_footer', records: @records
 ```
 
-##                                     MEMORY USAGE
+##                               CACHING ALGORITHMS ( STRAIGHT/REVERSE/ARRAY CACHING )
 
-I didn't make a special comparision, but I assume that there is a insufficient difference between usual cache and pg_cache.
+Three types of caching collection mechanism are used: straight, 'reverse', array-elem
+straight and reverse used for relation objects! array-elem - instantinated array or elem
+
+straight (db_cache_collection_s) - similar to usual cache, we check does every elements already cached, if so we just return aggregation result,
+if not - we just add +1 join on nitro_caches +1 select for nitro_cached_value as virtual attribute,
+ then we render element if nitro_cached_value.nil? or use nitro_cached_value otherwise.
+
+'reverse' (db_cache_collection_r) - is not similar to usual cache algorithms it used 'reversed' logic: we create special SQL-query only for non-cached
+elements, render them, and then we use aggregation on a previously given collection. This special SQL-query use all includes, joins, select which was in original
+query so we successfully escaping N+1 problems same way as usual cache did.
+This approach gives us more speed even on whole noncached collection. How it possible? Less string concatenation, less reallocation e.t.c
+
+array-elem (db_cache_array) - this is method used only with prerender: true for changed record.
+DON'T USE IT ELSEWHERE!! If you have complex hierarchy of models and don't include them on update action of your controller
+it may give you N+1 problem internally.
+
+##                              ВАРИАНТЫ КЕШИРОВАНИЯ ( STRAIGHT/REVERSE/ARRAY CACHING )
+
+Прямой и реверсивный ( straight and reverse ) используются только для relation объектов. array cache используется только если prerender: true
+для измененного элемента. 
+
+Прямое кеширование (db_cache_collection_s): мы классическим образом сначала проверяем что вся коллекция закеширована. Если закеширована - запросом с исолпьзованием str_agg собираем фид
+коллекции на уровне БД. нет - идем последовательно и рендерим, если нет кеша, или подставляем кеш, если он есть.
+
+Реверс кеширование (db_cache_collection_r): Мы делаем дополнительный специальный SQL-запрос, с учетом тех настроек инклюдов джойнов и селектов которые есть в
+полученном relation, но с условием что выбираются только элементы по которым нет кеша. прогоняем по ним рендеринг коллекции.
+и после этого проводим запрос на аггрегацию фида. Данный вариант кеширования оказался быстрее как прямого кеширования, так и обычной связки memcache + dali
+( я думаю из-за того что меньше работы со строками ). 
+
+array-elem (db_cache_array) - Этот метод используется только для prerender=true, только для тех элементов которые изменились.
+НЕ ИСПОЛЬЗУЙТЕ ЕГО НИГДЕ В ДРУГИХ СЛУЧАЯХ! 
 
 
-##                                     ИСПОЛЬЗОВАНИЕ ПАМЯТИ
-
-Объем используемой памяти примерно одинаковый и может зависеть от того какой конкретно пришел запрос, сколько в нем уже
-закешированных элементов сколько новых и пр.
-
-
-##                                    BENCHMARK
+##                                    BENCHMARK VS MEMCACHE + DALLI
 
 Comparisons were made manually with rack mini-profiler gem +
 I used htop system-monitor to be sure that nothing going in the background and tempering with results
 
-CONFIGURATION: dalli + memcached same machine vs postgres 9.4 same machine ( ~ 8 logical cores + 10Gb )
+CONFIGURATION: dalli + memcached same machine vs postgres 9.4 same machine 
+VM config:  8 logical cores, Core i7 SSD 10Gb RAM
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    ATTENTION NOTICE:   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-This numbers just a VERY particular case, you even can't use them to predict your own comparative numbers,
-not to say your own time in seconds! But I did it on two completly different tables and their collections and get very closed
+This numbers just a VERY particular case, you can use them to predict your own *comparative* numbers very carefully,
+and of course you can't predict your own time in seconds! 
+But I did it on two completly different tables and their collections and get very closed
 result in percents meaning that numbers are quite representative
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real results on browser page first time render all N records ( linear dependency )
 first column - records count
 rv - "reverse" cache when we first just render only __missing__ elements and save them to DB, and second aggregate all collection from db
 dbs - data base straight mean it's render's with one straightforward iteration
@@ -150,7 +175,9 @@ We can assume this is superposition of already obtained numbers. i.e inside rang
 ( the right borders number depends on the collection size, the bigger collection bigger the number )
 
 ### GETTING COLLECTION CACHE ( whole collection cached ( nitro wins cause it's not need to instantinate collection ) )
-Notice: if you use usual cache but with rails >= 5 or pg_cache_key gem it will bring nearly same result ( may be different in couple of 0.01s )
+
+!Notice: Next comparision is valid only for rails <=4.2 without pg_cache_key gem! 
+In rails >= 5 or with pg_cache_key gem it will bring nearly same result i.e. ratio will be 1!
 
 | Records count | 'Reverse' nitro cache | Memcache | Ratio  |
 |---------------|-----------------------|----------|--------|
@@ -159,8 +186,69 @@ Notice: if you use usual cache but with rails >= 5 or pg_cache_key gem it will b
 |0.12K  | 0.2-0.25 | 0.38s | ~1.7 times faster |
 
 
+##                                    СРАВНЕНИЕ С MEMCACHE + DALLI
+
+Сравнения провел вручную на живых страницах с исопльзованием rack mini-profiler gem. 
+Использую htop следил, чтобы ничего не загружало систему дополнительно и портило результаты
+
+Настройки виртуалки: dalli + memcached vs postgres 9.4 ( ~ 8 логических ядер + 10Gb, реальная машина Core i7 SSD 10Gb RAM)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    ВНИМАНИЕ:   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Полученные результаты это конкретный случай, их нельзя использовать для того чтобы предстказать ваш результат в секундах, 
+НО с определенной осторожностью можно предсказать относительные значения. Я прогонял тест на двух совершенно разных 
+таблицах/коллекциях и сравнительные значения были примерно одинаковые.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Расшифровка таблицы: 
+first column - Количество записей из таблицы
+rv - (reverse) время потраченное при реверсивном кешировании/рендеринге 
+dbs - (data base straight) кеширование/рендеринг осуществляется в один прямой проход
+mmch - (memcache) обычный матрешный кеш memcached + dalli
+
+### Первичный рендеринг
+
+| Records count | 'Reverse' nitro cache | Straight nitro cache | Memcache | Ratio  |
+|---------------|-----------------------|----------------------|----------|--------|
+|1K | 14.7s | 16s  | 17s | ~1.15 faster |
+|0.38K | 4.9s | 5.2s | 5.6s | |
+|0.1K | 1.3s | 1.4s | 1.5s | ~1.15 faster |
+
+### Первичный рендеринг на подколлекцию или со сменой порядка (т.е. все отдельные элементы уже закешированы, но не вся коллекция)
+
+| Records count | 'Reverse' nitro cache | Memcache | Ratio  |
+|---------------|-----------------------|----------|--------|
+|1K | 0.5s | 1.5s | ~3 times faster |
+|0.38K | 0.35+s |  0.75+ |  ~2 times faster |
+|0.12K | 0.2-0.25 | 0.4-0.5+s |  ~2 times faster |
+
+### Частично закешированая коллекция
+Можно точно предположить что время/быстродействие будет суперпозицией от первых двух результатов и будет лежать в пределах 1.15-3
+
+### Получение полного кеша коллекции ( только для рельс < 5 )
+
+Обращаю внимание что в связи с отличием в получение cache_key на коллекции между rails 4.2 и rails 5 
+Данные цифры актуальны только для старых версий рельс без использования моего гема pg_cache_key
+В противному случае результаты будут примерно одинаковые!!
+
+| Records count | 'Reverse' nitro cache | Memcache | Ratio  |
+|---------------|-----------------------|----------|--------|
+|1K   | 0.5s | 1s  | ~2 times faster |
+|0.38K | 0.35+s  | 0.6 | ~1.7 times faster |
+|0.12K  | 0.2-0.25 | 0.38s | ~1.7 times faster |
+
+##                                     MEMORY USAGE
+
+I didn't make a special comparision, but I assume that there is a insufficient difference between usual cache and pg_cache.
+
+
+##                                     ИСПОЛЬЗОВАНИЕ ПАМЯТИ
+
+Объем используемой памяти примерно одинаковый и может зависеть от того какой конкретно пришел запрос, сколько в нем уже
+закешированных элементов сколько новых и пр.
+
+
 ##                                           GENERAL FALLBACK
-With any variant of prerender true/false all not found, caches get themselves cached usual way as in prerender-false case
+With any variant of prerender true/false all not found caches get themselves cached usual way as in prerender-false case. i.e. as usual cache will do.
 
 ##                                           ОСНОВНОЕ ПОВЕДЕНИЕ ПО УМОЛЧАНИЮ
 Независимо от того стоит prerender-true или нет, если на момент запроса значение nitro_cache_value пустое,
@@ -245,36 +333,6 @@ Right now all cache get timestamp for the last access ( :viewed_at ) so it possi
 ##                                        УСТАРЕВАНИЕ
 Сейчас все ключи хранят штамп времени последнего просмотра поэтому можно легко реализовать устаревающий кеш. например как рейк + крон-джоб
 
-                               CACHING ALGORITHMS ( STRAIGHT/REVERSE/ARRAY CACHING )
-
-Three types of caching collection mechanism are used: straight, 'reverse', array-elem
-straight and reverse used for relation objects! array-elem - instantinated array or elem
-
-straight (db_cache_collection_s) - similar to usual cache, we check does every elements already cached if so we just return aggregation result,
-if not - we just add +1 join on nitro_cache +1 select for nitro_cached_value as virtual attribute
-and then render element if nitro_cached_value.nil? otherwise use nitro_cached_value
-
-'reverse' (db_cache_collection_r) - is not similar to usual cache algorithms it used 'reversed' logic: we create special SQL-query only for non-cached
-elements, render them, and then we use aggregation on a given collection. This special SQL-query use all includes, joins, select which was in original
-query so we successfully escaping N+1 problems same way as usual cache did.
-This approach gives us more speed even on whole noncached collection. How it possible? Less string concatenation, less reallocation e.t.c
-
-array-elem (db_cache_array) - this is method used only with prerender: true for changed record.
-DON'T USE IT ELSEWHERE!! If you have complex hierarchy of models and don't include them on update action of your controller
-it may give you N+1 problem internally.
-
-##                              ВАРИАНТЫ КЕШИРОВАНИЯ ( STRAIGHT/REVERSE/ARRAY CACHING )
-
-Прямой и реверсивный ( straight and reverse ) используются только для relation объектов. ARRAY CACHING используется только если prerender: true
-для измененного элемента.
-
-Прямое кеширование: мы классическим образом сначала проверяем что вся коллекция закеширована. Если закеширована - запросом с исолпьзованием str_agg собираем фид
-коллекции на уровне БД. нет - идем последовательно и рендерим, если нет кеша, или подставляем кеш, если он есть.
-
-Реверс кеширование: Мы делаем дополнительный специальный SQL-запрос, с учетом тех настроек инклюдов джойнов и селектов которые есть в
-полученном relation, но с условием что выбираются только элементы по которым нет кеша. прогоняем по ним рендеринг коллекции.
-и после этого проводим запрос на аггрегацию фида. Данный вариант кеширования оказался быстрее как прямого кеширования, так и обычной связки memcache + dali
-( я думаю из-за того что меньше работы со строками )
 
 ##                              STRAIGHT VS REVERSE VS CLASSIC POSSIBLE PROBLEMS
 1. DB Sharding for reverse-cache. If we use db sharding reverse-cache may need additional tuning and testing since it's doing its job
