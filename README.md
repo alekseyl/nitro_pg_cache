@@ -11,9 +11,10 @@ It faster than memcache+dalli combination. In some cases three times faster, but
 Right now nitro_pg_cache is in alpha-release state. It's working, but may need additional tuning and features, for example limits and expiring, 
 actually I don't know which will suit best. 
 
-                                    FEATURES
+#                                    FEATURES
 Already working*:
 (* all benchmark numbers are given with pg_cache_key gem enabled, this mean that in rails < 5 or without pg_cache_key, you'll get +25% additional speed bonus for cached collection )
+
 1. First rendering is faster then memcache+dalli on same machine. ~10% faster
 2. Reordering and sub-collection rendering on cached collection are 3 times faster then memcached+dalli** 
    Rendering are done with DB speed i.e. You can assume that feed rendering speed now are some very small time constant. 100 and 1K records are rendering with
@@ -28,12 +29,13 @@ Already working*:
 5. In 4.x rails if you don't use pg_cache_key, but use nitro_cache then you get additional +25% speedup for completly cached feed
 
 Can be done soon
-6 Easily can switch back and forth from usual cache to db cache using cache_by key.
-7 Shards DB
-8 auto-renewable cache. we can save locals to jsonb column, after touching cached-element we can rerender
+
+6. Easily can switch back and forth from usual cache to db cache using cache_by key.
+7. Shards DB
+8. auto-renewable cache. we can save locals to jsonb column, after touching cached-element we can rerender
   all dependent caches with saved locals. Differs from prerender that we don't prerender all possibilities, but only already rendered 
   ( must check how mass update will suffer from json insert ).
-9 Expiring and quantity limits, cache expiring can be done on different conditions including last time viewed.
+9. Expiring and quantity limits, cache expiring can be done on different conditions including last time viewed.
 
 # NitroPgCache (РУС)
 Данная библиотека реализует кеширование relation-коллекций на основе движка PostgreSQL последних версий (>=9.4). 
@@ -48,24 +50,26 @@ Can be done soon
 Реализованные возможности*:
 (* величины указаны при использовании гема pg_cache_key для реализации cache_key у коллекций,
   поэтому в 4-х рельсах nitro_cache получает еще +25% выигрыша по времени, если pg_cache_key не исопльзуется, даже на полностью кешированной коллекции, см 6) )
+
 1. Первичный рендеринг быстрее чем у memcache+dalli на ~10% для коллекции ( Это малоактуально если рендеринг коллекции занимает
     менее 50% от рендеринга всей страницы, т.е. выигрыш на всей странице становится ~ 5% )
 2. Пересортировка или рендеринг подколлекций на закешированной матрешкой коллекции в 2-3 и более раз быстрее ( чем больше коллекция тем больше выигрыш )
 3. Возможность пререндеринга для элементов, т.е. при обновлении кешируемого элемента его кеши обновляются автоматом + спец рейк на их первичную генерацию
- 3.a Возможность пререндеринга только для определенного scope элементов.
+  3.a Возможность пререндеринга только для определенного scope элементов.
 4. Управление кешем на уровне БД. Например сброс кешей можно делать без того чтобы трогать объекты: NitroCache.where(nitro_cacheable: collection).delete_all и пр.
 5. В четвертых рельсах, если не использовать gem pg_cache_key дополнительно выигрывает 25% времени от memcached+dalli
 
 Нереализованные пока
+
 6. Можно легко переключать между обычным кешем и бд кешем. используя cache_by ?
 7. БД Шардинг
-8 Авторекеш. Возможно в дальнейшем автоматичечки перекешировывать существующие кеши без использования prerender - true, а с сохранением к каждому
+8. Авторекеш. Возможно в дальнейшем автоматичечки перекешировывать существующие кеши без использования prerender - true, а с сохранением к каждому
   ключу еще и Json для локалс.
-9 Устаревание И лимитирование кешей. Может быть реализовано многими способами.
+9. Устаревание И лимитирование кешей. Может быть реализовано многими способами.
 
 ## RESTRICTIONS:
 
-1 Only clear collections rendering can be cached with this gem. i.e.:
+Only clear collections rendering can be cached with this gem. i.e.:
   Can convert:
 ```
     -cache [@records, locals ] do
@@ -125,25 +129,34 @@ rv - "reverse" cache when we first just render only __missing__ elements and sav
 dbs - data base straight mean it's render's with one straightforward iteration
 mmch - usual matroska doll cache with memcached and dalli
 
-______________________________________FIRST RENDER_____________________________________
-1K    rv ~ 14.7s dbs ~ 16s  mmch ~ 17s (~1.15 faster)
-0.38K rv ~ 4.9   dbs ~ 5.2  mmch ~ 5.6
-0.1K  rv ~ 1.3   dbs ~ 1.4  mmch ~ 1.5s (~1.15 faster)
+### FIRST RENDER
 
-____________FIRST RENDER SUBCOLLECTION/REORDERING (i.e. when all elements are cached, but not whole collection)___________________
-1K    rv ~ 0.5s mmch ~ 1.5s  ( ~3 times faster )
-0.38K rv ~ 0.35+s  mmch ~ 0.75+ ( ~2 times faster )
-0.12K  rv ~ 0.2-0.25  mmch ~ 0.4-0.5+s ( ~2 times faster )
+| Records count | 'Reverse' nitro cache | Straight nitro cache | Memcache | Ratio  |
+|---------------|-----------------------|----------------------|----------|--------|
+|1K | 14.7s | 16s  | 17s | ~1.15 faster |
+|0.38K | 4.9s | 5.2s | 5.6s | |
+|0.1K | 1.3s | 1.4s | 1.5s | ~1.15 faster |
 
-____________PARTIAL COLLECTION RENDERING______________________________________________
+### FIRST RENDER SUBCOLLECTION/REORDERING (i.e. when all elements are cached, but not whole collection)
+
+| Records count | 'Reverse' nitro cache | Memcache | Ratio  |
+|---------------|-----------------------|----------|--------|
+|1K | 0.5s | 1.5s | ~3 times faster |
+|0.38K | 0.35+s |  0.75+ |  ~2 times faster |
+|0.12K | 0.2-0.25 | 0.4-0.5+s |  ~2 times faster |
+
+### PARTIAL COLLECTION RENDERING 
 We can assume this is superposition of already obtained numbers. i.e inside range: 1.15-3
 ( the right borders number depends on the collection size, the bigger collection bigger the number )
 
-____________GETTING COLLECTION CACHE ( whole collection cached ( nitro wins cause it's not need to instantinate collection ) )__________
+### GETTING COLLECTION CACHE ( whole collection cached ( nitro wins cause it's not need to instantinate collection ) )
 Notice: if you use usual cache but with rails >= 5 or pg_cache_key gem it will bring nearly same result ( may be different in couple of 0.01s )
-1K    rv ~ 0.5s mmch ~ 1s  ( ~2 times faster )
-0.38K rv ~ 0.35+s  mmch ~ 0.6 ( ~1.7 times faster )
-0.12K  rv ~ 0.2-0.25  mmch ~ 0.38s ( ~1.7 times faster )
+
+| Records count | 'Reverse' nitro cache | Memcache | Ratio  |
+|---------------|-----------------------|----------|--------|
+|1K   | 0.5s | 1s  | ~2 times faster |
+|0.38K | 0.35+s  | 0.6 | ~1.7 times faster |
+|0.12K  | 0.2-0.25 | 0.38s | ~1.7 times faster |
 
 
 ##                                           GENERAL FALLBACK
@@ -154,36 +167,42 @@ With any variant of prerender true/false all not found, caches get themselves ca
 то кеширование запускается обычным ходом, который совпадает, с вариантом когда prerender-false.
 
 
-                                HOW IT BEHAVE WHEN SOMETHING CHANGES ( KEYS, PARTIALS, ETC )
+##                                HOW IT BEHAVE WHEN SOMETHING CHANGES ( KEYS, PARTIALS, ETC )
 The main rule of thumb: no prerendering at server start, only mass cleaning old and creating new nitro_partial records!
 If you are using prerender, then run rake task prerender in parallel manually or by any automation script
 The rules of cache changes are depended on prerender state of partial true|false
-1 Object changes:
-  а) prerender-true => after_commit -> render all locals variants
-  б) prerender-false => after_commit -> clear all caches
-2 Cache params changes:
-  +2.1 New keys added.
-      prerender true => rails started as usual, you run prerender rake manually!!,
-      prerender false => do nothing! Everything will be rendered on demand!
-  +2.2 Keys were removed => nitro_partial.db_cached_partials.where.not( nitro_partial.cache_keys.keys ).delete_all at rails start.
-  +2.3 New partial
-     а) the new nitro_partial record would be added to DB at rails start if we use prerender or at first render otherwise
-        all prerendering only in rake!
-  +2.4 Partial changed.
-     +а) remove all obsolete keys from DB at rails start
-  +2.5 Removing partial. all obsolete cache keys will be deleted at application start
-  -2.6 Prerender -> toggle
-    а) true -> false => do_nothing
-    б) false -> true => manually run rake :nitro_prerender to prerender those who don't exists.
-  2.7 partial naming changes.
-    a) it's possible to create rake rename_nitro_partial but right now you just rename your partial -
-       loose all rendered cache pieces and rerender them as if you create new one.
-       Also it's possible to change cache key mechanism generation and use not the file name, but file content
-       hash_key, then any renaming and moving of a file will not affect any cached values. Now it's not the point.
-  2.8 When expiration params changes При изменении параметров устаревания, проверяем в rake :expire_db_nitro_cache который можно в кронджобы вписать.
-      все кеши на соответствие новым правилам. Ненужное удаляем.
 
-                         ПРАВИЛА ИЗМНЕНИЯ КЕША, ЕСЛИ ЧТО_ТО ПОМЕНЯЛОСЬ (РУС)
+*Object changes:*
+
+1. prerender-true => after_commit -> render all locals variants
+2. prerender-false => after_commit -> clear all caches
+
+*Cache params changes:*
+
+1. New keys added.
+  prerender true => rails started as usual, you run prerender rake manually!!,
+  prerender false => do nothing! Everything will be rendered on demand!
+
+2. Keys were removed => nitro_partial.db_cached_partials.where.not( nitro_partial.cache_keys.keys ).delete_all at rails start.
+
+3. New partial
+ + the new nitro_partial record would be added to DB at rails start if we use prerender or at first render otherwise
+    all prerendering only in rake!
+4. Partial changed.
+ + remove all obsolete keys from DB at rails start
+5. Removing partial. all obsolete cache keys will be deleted at application start
+6. Prerender -> toggle
+    + true -> false => do_nothing
+    + false -> true => manually run rake :nitro_prerender to prerender those who don't exists.
+7. partial naming changes.
+    + it's possible to create rake rename_nitro_partial but right now you just rename your partial -
+   loose all rendered cache pieces and rerender them as if you create new one.
+   Also it's possible to change cache key mechanism generation and use not the file name, but file content
+   hash_key, then any renaming and moving of a file will not affect any cached values. Now it's not the point.
+8. When expiration params changes При изменении параметров устаревания, проверяем в rake :expire_db_nitro_cache который можно в кронджобы вписать.
+  все кеши на соответствие новым правилам. Ненужное удаляем.
+
+##                        ПРАВИЛА ИЗМНЕНИЯ КЕША, ЕСЛИ ЧТО_ТО ПОМЕНЯЛОСЬ (РУС)
 Главное правило: никакого пререндеринга на старте сервера иначе у деплоя развяжется пупок.
 На старте только: массовое удаление устаревшего, создание новых записей nitro_partial для новых паршиалов.
 Правила поведения кеша при изменениях ( поведение зависит от значения prerender - true|false)
