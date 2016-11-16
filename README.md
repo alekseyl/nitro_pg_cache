@@ -1,17 +1,17 @@
-# ATTENTION
+## ATTENTION
 To use this gem you need PostgreSQL 9.4 and higher!
 
-# ATTENTION(РУС)
+## ATTENTION(РУС)
 Для корректной работы библиотеки требуется версия PostgreSQL не ниже 9.4!
 
-# NitroPgCache 
+## NitroPgCache 
 This gem create DB-based solution for caching relation collections. It based on PostgreSQL version >= 9.4 . 
 It faster than memcache+dalli combination. In some cases three times faster, but with all DB facilities! 
 
 Right now nitro_pg_cache is in alpha-release state. It's working, but may need additional tuning and features, for example limits and expiring, 
 actually I don't know which will suit best. 
 
-#                                    FEATURES
+##                                    FEATURES
 Already working*:
 (* all benchmark numbers are given with pg_cache_key gem enabled, this mean that in rails < 5 or without pg_cache_key, you'll get +25% additional speed bonus for cached collection )
 
@@ -37,7 +37,7 @@ Can be done soon
   ( must check how mass update will suffer from json insert ).
 9. Expiring and quantity limits, cache expiring can be done on different conditions including last time viewed.
 
-# NitroPgCache (РУС)
+## NitroPgCache (РУС)
 Данная библиотека реализует кеширование relation-коллекций на основе движка PostgreSQL последних версий (>=9.4). 
 Получившийся результат по всем показателям скороси не уступает 
 классической схеме memcache+dalli, а во многих случаях и превосходит ее в разы, обладая при этом всеми достоинствами базы данных.
@@ -45,7 +45,7 @@ Can be done soon
 В настоящий момент библиотека находится в состоянии alpha-release. Основной функционал ее работает, но ряд дополнительных возможностей требует реализации. 
 Например ограничения на количество кешей, устаревание кешей и пр. . Если есть какие-то пожелания какие конкретно должны быть возможности связанные с этим: велкам
 
-#                                     ВОЗМОЖНОСТИ БИБЛИОТЕКИ
+##                                     ВОЗМОЖНОСТИ БИБЛИОТЕКИ
 
 Реализованные возможности*:
 (* величины указаны при использовании гема pg_cache_key для реализации cache_key у коллекций,
@@ -67,7 +67,7 @@ Can be done soon
   ключу еще и Json для локалс.
 9. Устаревание И лимитирование кешей. Может быть реализовано многими способами.
 
-## RESTRICTIONS:
+### RESTRICTIONS:
 
 Only clear collections rendering can be cached with this gem. i.e.:
   Can convert:
@@ -82,7 +82,7 @@ Only clear collections rendering can be cached with this gem. i.e.:
       =render partial: 'pagination_footer', records: @records
 ```
 
-## ОГРАНИЧЕНИЯ:
+### ОГРАНИЧЕНИЯ:
 
 Только чистый кеш на коллекцию может использоваться с данной библиотекой:
 Может быть сконвертированно:
@@ -99,7 +99,7 @@ Only clear collections rendering can be cached with this gem. i.e.:
       =render partial: 'pagination_footer', records: @records
 ```
 
-##                               CACHING ALGORITHMS ( STRAIGHT/REVERSE/ARRAY CACHING )
+###                               CACHING ALGORITHMS ( STRAIGHT/REVERSE/ARRAY CACHING )
 
 Three types of caching collection mechanism are used: straight, 'reverse', array-elem
 straight and reverse used for relation objects! array-elem - instantinated array or elem
@@ -117,7 +117,7 @@ array-elem (db_cache_array) - this is method used only with prerender: true for 
 DON'T USE IT ELSEWHERE!! If you have complex hierarchy of models and don't include them on update action of your controller
 it may give you N+1 problem internally.
 
-##                              ВАРИАНТЫ КЕШИРОВАНИЯ ( STRAIGHT/REVERSE/ARRAY CACHING )
+###                              ВАРИАНТЫ КЕШИРОВАНИЯ ( STRAIGHT/REVERSE/ARRAY CACHING )
 
 Прямой и реверсивный ( straight and reverse ) используются только для relation объектов. array cache используется только если prerender: true
 для измененного элемента. 
@@ -134,7 +134,7 @@ array-elem (db_cache_array) - Этот метод используется то�
 НЕ ИСПОЛЬЗУЙТЕ ЕГО НИГДЕ В ДРУГИХ СЛУЧАЯХ! 
 
 
-##                                    BENCHMARK VS MEMCACHE + DALLI
+###                                    BENCHMARK VS MEMCACHE + DALLI
 
 Comparisons were made manually with rack mini-profiler gem +
 I used htop system-monitor to be sure that nothing going in the background and tempering with results
@@ -186,7 +186,7 @@ In rails >= 5 or with pg_cache_key gem it will bring nearly same result i.e. rat
 |0.12K  | 0.2-0.25 | 0.38s | ~1.7 times faster |
 
 
-##                                    СРАВНЕНИЕ С MEMCACHE + DALLI
+###                                    СРАВНЕНИЕ С MEMCACHE + DALLI
 
 Сравнения провел вручную на живых страницах с исопльзованием rack mini-profiler gem. 
 Используя htop, следил, чтобы ничего не загружало систему дополнительно и портило результаты.
@@ -236,26 +236,26 @@ mmch - (memcache) обычный матрешный кеш memcached + dalli
 |0.38K | 0.35+s  | 0.6 | ~1.7 times faster |
 |0.12K  | 0.2-0.25 | 0.38s | ~1.7 times faster |
 
-##                                     MEMORY USAGE
+###                                     MEMORY USAGE
 
 I didn't make a special comparision, but I assume that there is a insufficient difference between usual cache and pg_cache.
 
 
-##                                     ИСПОЛЬЗОВАНИЕ ПАМЯТИ
+###                                     ИСПОЛЬЗОВАНИЕ ПАМЯТИ
 
 Объем используемой памяти примерно одинаковый и может зависеть от того какой конкретно пришел запрос, сколько в нем уже
 закешированных элементов сколько новых и пр.
 
 
-##                                           GENERAL FALLBACK
+###                                           GENERAL FALLBACK
 With any variant of prerender true/false all not found caches get themselves cached usual way as in prerender-false case. i.e. as usual cache will do.
 
-##                                           ОСНОВНОЕ ПОВЕДЕНИЕ ПО УМОЛЧАНИЮ
+###                                           ОСНОВНОЕ ПОВЕДЕНИЕ ПО УМОЛЧАНИЮ
 Независимо от того стоит prerender-true или нет, если на момент запроса значение nitro_cache_value пустое,
 то кеширование запускается обычным ходом, который совпадает, с вариантом когда prerender-false.
 
 
-##                                HOW IT BEHAVE WHEN SOMETHING CHANGES ( KEYS, PARTIALS, ETC )
+###                                HOW IT BEHAVE WHEN SOMETHING CHANGES ( KEYS, PARTIALS, ETC )
 The main rule of thumb: no prerendering at server start, only mass cleaning old and creating new nitro_partial records!
 If you are using prerender, then run rake task prerender in parallel manually or by any automation script
 The rules of cache changes are depended on prerender state of partial true|false
@@ -290,7 +290,7 @@ The rules of cache changes are depended on prerender state of partial true|false
 8. When expiration params changes При изменении параметров устаревания, проверяем в rake :expire_db_nitro_cache который можно в кронджобы вписать.
   все кеши на соответствие новым правилам. Ненужное удаляем.
 
-##                        ПРАВИЛА ИЗМНЕНИЯ КЕША, ЕСЛИ ЧТО_ТО ПОМЕНЯЛОСЬ (РУС)
+###                        ПРАВИЛА ИЗМНЕНИЯ КЕША, ЕСЛИ ЧТО_ТО ПОМЕНЯЛОСЬ (РУС)
 Главное правило: никакого пререндеринга на старте сервера иначе у деплоя развяжется пупок.
 На старте только: массовое удаление устаревшего, создание новых записей nitro_partial для новых паршиалов.
 Правила поведения кеша при изменениях ( поведение зависит от значения prerender - true|false)
@@ -310,7 +310,7 @@ The rules of cache changes are depended on prerender state of partial true|false
   3. При изменении параметров устаревания, проверяем в rake :expire_db_nitro_cache который можно в кронджобы вписать.
       все кеши на соответствие новым правилам. Ненужное удаляем.
 
-##                                           PARTIAL PRERENDER
+###                                           PARTIAL PRERENDER
 
 Since nitro_pg_cache works as usual cache* also we can prerender only for part of keys and part of records, only most wanted.
 
@@ -323,7 +323,7 @@ so we can set prerender scope with condition on :created_at column, and prerende
 
 *see section LIMITATIONS for more details on the possibilities of replacing usual feed cache with nitro
 
-##                                          ЧАСТИЧНЫЙ ПРЕРЕНДЕРИНГ
+###                                          ЧАСТИЧНЫЙ ПРЕРЕНДЕРИНГ
 В силу того что nitro_cache может работать практически как обычный матрешный кеш* мы можем включить пререндеринг только для части
 ключей и части записей.
 
@@ -334,20 +334,20 @@ so we can set prerender scope with condition on :created_at column, and prerende
 Второй пример: мы ведем длинную историю оплат пользователей, но для работы бухов нужен последний квартал или там год
 мы можем выставить scope для пререндеринга по :created_at и пререрндерить только нужные записи.
 
-##                                         EXPIRING
+###                                         EXPIRING
 Right now all cache get timestamp for the last access ( :viewed_at ) so it possible to control cache expiration on time basis
 
-##                                        УСТАРЕВАНИЕ
+###                                        УСТАРЕВАНИЕ
 Сейчас все ключи хранят штамп времени последнего просмотра поэтому можно легко реализовать устаревающий кеш. например как рейк + крон-джоб
 
 
-##                              STRAIGHT VS REVERSE VS CLASSIC POSSIBLE PROBLEMS
+###                              STRAIGHT VS REVERSE VS CLASSIC POSSIBLE PROBLEMS
 1. DB Sharding for reverse-cache. If we use db sharding reverse-cache may need additional tuning and testing since it's doing its job
   in two steps. Straight-cache will work anyway.
 2. Exotic cases for any variant of pg_cache. If we render same collection twice with different partial inside one controller action ( it's quite unusual behaviour ),
    than we may instatinate collection twice.
 
-##                              STRAIGHT VS REVERSE VS CLASSIC ВЕРОЯТНЫЕ ПРОБЛЕМЫ
+###                              STRAIGHT VS REVERSE VS CLASSIC ВЕРОЯТНЫЕ ПРОБЛЕМЫ
 1. БД-шардинг при обратном кешировании. Если мы используем БД шардинг, то вариант реверс кеширования требует доработки, потому что мы должны спрашивать
    аггрегацию сразу же после того как сделали апдейт, поэтому по идее это должно идти на мастер-шард.
 2. Экзотические варинты многоразового рендеринга с разными паршиалами одной коллекции в одном методе контроллера. Тогда может быть многоразовая инстантинация
@@ -364,7 +364,7 @@ Right now all cache get timestamp for the last access ( :viewed_at ) so it possi
     ( это случай когда он параллельно был создан в соседнем процессе ) и если такого нет создается новый.
 
 
-## Usage
+### Usage
 
 ### As cache replacement
 Replace:
@@ -410,6 +410,10 @@ class Request < ActiveRecord::Base
                       as: :request,
                       scope: Request.except_created.with_deleted.where(created_at: -6.month.from_now..Time.now ) )
 end
+
+# prerender all scopes
+Partial.all.each(&:update_caches)
+
 ```
 
 

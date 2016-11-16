@@ -164,6 +164,8 @@ class NitroPartial < ActiveRecord::Base
   end
 
   def update_cache_for_collection( collection, progress = nil )
+
+    nitro_caches.where( nitro_cacheable: collection ).delete_all
     cache_keys.values.each do |locals|
       progress.try(:inc)
       ApplicationController.render( assigns: {
