@@ -38,18 +38,6 @@ class NitroPartial < ActiveRecord::Base
 
   class << self
 
-    def config
-      @@config ||={}
-    end
-
-    def batch_size
-      config[:batch_size] ||= PRERENDER_BATCH
-    end
-
-    def batch_size=(new_batch)
-      config[:batch_size] = new_batch
-    end
-
     # вытягивает из БД все в переменную класса, чтобы лишний раз не вставать. в процессе этого проверяет не поменялось
     # ли что-нибудь внутри файлов
     def partials_cache
