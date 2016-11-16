@@ -29,7 +29,7 @@ module NitroPgCache
         # because on large collections raw insert is 1.2 faster, i.e. same speed as memcache.
         NitroCache.connection.execute( <<INSERT_STR
           INSERT INTO "nitro_caches" ("nitro_cached_value", "nitro_cache_key", "nitro_partial_id", "viewed_at" )
-           VALUES ('#{render_result}', '#{whole_cache_key}', '#{@current_cache_aggregator[:nitro_partial_id]}', '#{Time.now}') RETURNING "id"
+           VALUES ('#{render_result}', '#{whole_cache_key}', '#{@current_cache_aggregator[:nitro_partial_id]}', '#{Time.now}')
 INSERT_STR
         )
         render_result

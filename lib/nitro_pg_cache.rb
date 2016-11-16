@@ -1,8 +1,3 @@
-# require 'active_record'
-# require 'active_record/version'
-# require 'active_support/core_ext/module'
-
-# require 'rails/engine'
 require 'nitro_pg_cache/engine'
 
 require 'nitro_pg_cache/model_ext'
