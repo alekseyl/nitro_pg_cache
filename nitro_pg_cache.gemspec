@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.version     = NitroPgCache::VERSION
   s.authors     = ["alekseyl"]
   s.email       = ["leshchuk@gmail.com"]
-  s.homepage    = ""
+  s.homepage    = "https://github.com/alekseyl/nitro_pg_cache"
   s.summary       = %q{PostgreSQL fast cache. Faster than memcache+dalli on same machine.
                           Features: 'instant' reordering cached collection and subcollection rendering, prerendering, 2-3 faster rendering of partially cached collection }
   s.description   = %q{PostgreSQL fast cache. Faster than memcache+dalli on same machine.
