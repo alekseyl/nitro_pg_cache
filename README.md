@@ -334,10 +334,14 @@ so we can set prerender scope with condition on :created_at column, and prerende
 Второй пример: мы ведем длинную историю оплат пользователей, но для работы бухов нужен последний квартал или там год
 мы можем выставить scope для пререндеринга по :created_at и пререрндерить только нужные записи.
 
-###                                         EXPIRING
-Right now all cache get timestamp for the last access ( :viewed_at ) so it possible to control cache expiration on time basis
+###                                         EXPIRING 
+NitroCache table contains only actual caches. Any touch of nitro_cacheable record will destroy all it nitro_caches (and prerender thoose with prerender-true option)
 
-###                                        УСТАРЕВАНИЕ
+###                                         Keeping NitroCache table small
+Right now all cache get timestamp for the last access ( :viewed_at ) so it possible to control table size on time basis. 
+I.e. you can remove those caches that have been of users interests for a long period.
+
+###                                        СБРОС НЕ ИСПОЛЬЗУЕМЫХ КЕШЕЙ
 Сейчас все ключи хранят штамп времени последнего просмотра поэтому можно легко реализовать устаревающий кеш. например как рейк + крон-джоб
 
 
