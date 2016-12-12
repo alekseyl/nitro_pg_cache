@@ -181,6 +181,6 @@ class NitroPartial < ActiveRecord::Base
     self.class.partial_path(partial)
   end
 
-  #на старте системы сохраняем все кеши в локальную структуру.
-  partials_cache
+  #causes to break with connection pool error
+  #partials_cache
 end

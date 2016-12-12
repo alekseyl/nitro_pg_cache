@@ -1,3 +1,3 @@
 module NitroPgCache
-  VERSION = '0.1.1.rc1'
+  VERSION = '0.1.2.rc1'
 end
